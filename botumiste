@@ -1,0 +1,118 @@
+# This example requires the 'members' and 'message_content' privileged intents to function.
+
+import discord
+from discord.ext import commands
+import random
+
+description = '''An example bot to showcase the discord.ext.commands extension
+module.
+
+There are a number of utility commands being showcased here.'''
+
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='?', description=description, intents=intents)
+
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print('------')
+
+
+@bot.command()
+async def add(ctx, left: int, right: int):
+    """İki sayıyı birbirine ekler."""
+    await ctx.send(left + right)
+
+
+@bot.command()
+async def roll(ctx, dice: str):
+    """NdN formatında zar atar. Örn: 2d6"""
+    try:
+        rolls, limit = map(int, dice.split('d'))
+    except Exception:
+        await ctx.send('Format bu şekilde olmalı: NdN (örnek: 2d6)')
+        return
+
+    result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
+    await ctx.send(result)
+
+
+@bot.command(description='For when you wanna settle the score some other way')
+async def choose(ctx, *choices: str):
+    """Birden fazla seçenek arasından seçim yapar."""
+    await ctx.send(random.choice(choices))
+
+
+@bot.command()
+async def repeat(ctx, times: int, content='repeating...'):
+    """Bir mesajı birden fazla kez tekrarlar."""
+    for i in range(times):
+        await ctx.send(content)
+
+
+@bot.command()
+async def joined(ctx, member: discord.Member):
+    """Bir üye katıldığında şunu söyler."""
+    await ctx.send(f'{member.name} joined {discord.utils.format_dt(member.joined_at)}')
+
+
+@bot.group()
+async def cool(ctx):
+    """Kimin havalı olduğunu söyler (şaka amaçlı)."""
+    if ctx.invoked_subcommand is None:
+        await ctx.send(f'Hayır, {ctx.subcommand_passed} çok da havalı değil gibi :)')
+
+
+@cool.command(name='bot')
+async def _bot(ctx):
+    """Bu bot havalı mı?"""
+    await ctx.send('Tabii ki! Ben en havalı botum :)')
+
+
+# YENİ EKLENENLER BURADA
+
+@bot.command()
+async def userinfo(ctx, member: discord.Member = None):
+    """Bir kullanıcının bilgilerini gösterir."""
+    member = member or ctx.author
+    embed = discord.Embed(title=f"{member}", description="Kullanıcı bilgileri", color=discord.Color.blue())
+    embed.add_field(name="ID", value=member.id)
+    embed.add_field(name="Ad", value=member.display_name)
+    embed.add_field(name="Katılma Tarihi", value=member.joined_at.strftime("%d/%m/%Y"))
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else "")
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def members(ctx):
+    """Sunucudaki toplam üye sayısını gösterir."""
+    await ctx.send(f'Sunucuda toplam {ctx.guild.member_count} üye var.')
+
+
+@bot.command()
+async def joke(ctx):
+    """Rastgele bir espri yapar."""
+    jokes = [
+        "Neden bilgisayarlar asla üşümez? Çünkü her zaman fanları vardır!",
+        "Python yazan yılan var mıymış?",
+        "Discord çökerse... hayat da çöker :)",
+        "404 – Espri bulunamadı."
+    ]
+    await ctx.send(random.choice(jokes))
+
+
+@bot.event
+async def on_member_join(member):
+    """Yeni gelen üyelere özel mesaj yollar."""
+    try:
+        await member.send(f"Sunucumuza hoş geldin, {member.name}!\nUmarım iyi vakit geçirirsin.")
+    except discord.Forbidden:
+        print(f"{member.name}'e mesaj gönderilemedi.")
+
+
+# BOTU BAŞLAT
+bot.run('Tokeni sildim burdan sen kendi tokenini koy')
